@@ -1,22 +1,35 @@
 const Student = require("../Models/studentModel")
 const bcrypt = require("bcrypt")
+const ApiError =require("../Utils/ApiError")
 
 // Register student
-async function registerStudent(req, res){
+async function registerStudent(req, res,next){
+    try{
     const {name, email, rollNumber, class: studentClass, password} = req.body
-    
-    await Student.create({
+    if(!name || !email || !rollNumber || !studentClass || !password){
+        throw new ApiError(400,"Required Field is Missing bro.")
+    }
+    const existing = await Student.findOne({ $or: [ {email}, {rollNumber}]})
+    if (existing){
+        throw new ApiError(409,"Email or Roll Number is already registered bro.")
+    }
+    const student = await Student.create({
         name: name,
         email: email,
         rollNumber: rollNumber,
         class: studentClass,
         password: bcrypt.hashSync(password, 12)
     })
-    
-    res.json({
-        message: "Student registered successfully!"
+    return res.status(201).json({
+        success:true ,
+        message:"Registration ko lagi धन्यवाद!!",
+        data:{id:student._id},
     })
+    
 }
+catch(err){
+    next(err)
+}}
 
 // Login student
 async function loginStudent(req, res){
